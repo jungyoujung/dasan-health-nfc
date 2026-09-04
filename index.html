@@ -1,0 +1,855 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>다산별빛 헬스로드</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      padding: 20px;
+      font-family: Arial, "Noto Sans KR", sans-serif;
+      background: #f4f7fb;
+      color: #222;
+    }
+
+    .wrap {
+      max-width: 480px;
+      margin: 20px auto;
+    }
+
+    .card {
+      background: white;
+      border-radius: 20px;
+      padding: 28px 22px;
+      box-shadow: 0 6px 20px rgba(0,0,0,0.08);
+    }
+
+    h1 {
+      text-align: center;
+      font-size: 26px;
+      margin: 0 0 8px;
+    }
+
+    .subtitle {
+      text-align: center;
+      color: #666;
+      line-height: 1.6;
+      margin-bottom: 26px;
+    }
+
+    .notice {
+      padding: 14px;
+      border-radius: 12px;
+      background: #fff7ed;
+      color: #8a3b12;
+      line-height: 1.6;
+      margin-bottom: 22px;
+    }
+
+    label {
+      display: block;
+      font-weight: bold;
+      margin: 16px 0 7px;
+    }
+
+    input,
+    select {
+      width: 100%;
+      padding: 14px;
+      border: 1px solid #ccc;
+      border-radius: 10px;
+      font-size: 17px;
+      background: white;
+    }
+
+    button {
+      width: 100%;
+      min-height: 54px;
+      border: none;
+      border-radius: 12px;
+      margin-top: 24px;
+      font-size: 18px;
+      font-weight: bold;
+      cursor: pointer;
+      background: #2563eb;
+      color: white;
+    }
+
+    button:disabled {
+      opacity: 0.6;
+    }
+
+    .secondary {
+      background: #eee;
+      color: #444;
+      font-size: 14px;
+      min-height: 44px;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    .center {
+      text-align: center;
+    }
+
+    .big-icon {
+      font-size: 64px;
+      margin: 15px 0;
+    }
+
+    .result-title {
+      font-size: 28px;
+      font-weight: bold;
+      margin-bottom: 12px;
+    }
+
+    .result-message {
+      font-size: 18px;
+      line-height: 1.6;
+    }
+
+    .student-box {
+      margin-top: 20px;
+      background: #f3f4f6;
+      padding: 13px;
+      border-radius: 10px;
+    }
+
+    .loading {
+      text-align: center;
+      padding: 40px 5px;
+      font-size: 19px;
+    }
+  </style>
+</head>
+
+
+<body>
+
+<div class="wrap">
+  <div class="card">
+
+    <h1>🌟 다산별빛 헬스로드</h1>
+
+    <div class="subtitle">
+      헬스로드 · 헬스짐<br>
+      NFC 참여 인증
+    </div>
+
+
+    <!-- 최초 등록 -->
+    <div id="registerView" class="hidden">
+
+      <div class="notice">
+        처음 이용하는 휴대폰입니다.<br>
+        학생정보를 <b>처음 한 번만</b> 등록해 주세요.
+      </div>
+
+      <form id="registerForm">
+
+        <label for="grade">학년</label>
+
+        <select id="grade" required>
+          <option value="">학년 선택</option>
+          <option value="1">1학년</option>
+          <option value="2">2학년</option>
+          <option value="3">3학년</option>
+          <option value="4">4학년</option>
+          <option value="5">5학년</option>
+          <option value="6">6학년</option>
+        </select>
+
+
+        <label for="classNo">반</label>
+        <input
+          id="classNo"
+          type="number"
+          min="1"
+          max="30"
+          placeholder="예: 3"
+          required
+        >
+
+
+        <label for="number">번호</label>
+        <input
+          id="number"
+          type="number"
+          min="1"
+          max="50"
+          placeholder="예: 15"
+          required
+        >
+
+
+        <label for="name">이름</label>
+        <input
+          id="name"
+          type="text"
+          maxlength="20"
+          placeholder="예: 홍길동"
+          required
+        >
+
+
+        <button id="registerBtn" type="submit">
+          등록하기
+        </button>
+
+      </form>
+
+    </div>
+
+
+    <!-- 로딩 -->
+    <div id="loadingView" class="loading hidden">
+      인증 기록을 확인하고 있어요... ⏳
+    </div>
+
+
+    <!-- 결과 -->
+    <div id="resultView" class="center hidden">
+
+      <div id="resultIcon" class="big-icon">
+        ✅
+      </div>
+
+      <div id="resultTitle" class="result-title">
+        인증 완료
+      </div>
+
+      <div id="resultMessage" class="result-message">
+      </div>
+
+      <div id="studentBox" class="student-box hidden">
+      </div>
+
+      <button
+        id="resetBtn"
+        type="button"
+        class="secondary">
+        내 정보 다시 등록
+      </button>
+
+    </div>
+
+  </div>
+</div>
+
+
+<script>
+
+  /*
+   * ★★★★★★★★★★★★★★★★★★★★★★★★★★
+   *
+   * 여기에 누나의 Apps Script 웹 앱 URL을 넣어야 함
+   *
+   * 반드시
+   * https://script.google.com/macros/s/...../exec
+   * 형식
+   *
+   * ★★★★★★★★★★★★★★★★★★★★★★★★★★
+   */
+
+  const API_URL =
+'https://script.google.com/macros/s/AKfycbxR5MDQhuiEJuv5Er0ec1sagqqY0SUwd-kXMwKMMDtYgusx7XY7WJ7n7sXcpeamAn7v/exec';
+
+  const TOKEN_KEY =
+    'dasan_health_device_token';
+
+
+  const params =
+    new URLSearchParams(
+      window.location.search
+    );
+
+
+  const EVENT =
+    params.get('event') || '';
+
+
+  function hideAll() {
+
+    document
+      .getElementById('registerView')
+      .classList.add('hidden');
+
+    document
+      .getElementById('loadingView')
+      .classList.add('hidden');
+
+    document
+      .getElementById('resultView')
+      .classList.add('hidden');
+  }
+
+
+  function showRegister() {
+
+    hideAll();
+
+    document
+      .getElementById('registerView')
+      .classList.remove('hidden');
+  }
+
+
+  function showLoading() {
+
+    hideAll();
+
+    document
+      .getElementById('loadingView')
+      .classList.remove('hidden');
+  }
+
+
+  function showResult(
+    icon,
+    title,
+    message,
+    student
+  ) {
+
+    hideAll();
+
+    document.getElementById('resultIcon')
+      .textContent = icon;
+
+    document.getElementById('resultTitle')
+      .textContent = title;
+
+    document.getElementById('resultMessage')
+      .textContent = message;
+
+
+    const studentBox =
+      document.getElementById('studentBox');
+
+
+    if (student) {
+
+      studentBox.textContent =
+        student.grade + '학년 ' +
+        student.classNo + '반 ' +
+        student.number + '번 ' +
+        student.name;
+
+      studentBox.classList.remove('hidden');
+
+    } else {
+
+      studentBox.classList.add('hidden');
+    }
+
+
+    document
+      .getElementById('resultView')
+      .classList.remove('hidden');
+  }
+
+
+  // 휴대폰마다 랜덤 기기토큰 생성
+  function createToken() {
+
+    if (
+      window.crypto &&
+      crypto.randomUUID
+    ) {
+
+      return crypto.randomUUID();
+    }
+
+
+    return (
+      Date.now().toString(36) +
+      '-' +
+      Math.random()
+        .toString(36)
+        .substring(2) +
+      '-' +
+      Math.random()
+        .toString(36)
+        .substring(2)
+    );
+  }
+
+
+  function getToken() {
+
+    let token =
+      localStorage.getItem(
+        TOKEN_KEY
+      );
+
+
+    if (!token) {
+
+      token = createToken();
+
+      localStorage.setItem(
+        TOKEN_KEY,
+        token
+      );
+    }
+
+
+    return token;
+  }
+
+
+  function clearToken() {
+
+    localStorage.removeItem(
+      TOKEN_KEY
+    );
+  }
+
+
+  /*
+   * Apps Script 호출
+   * JSONP 방식
+   */
+  function callServer(
+    parameters,
+    success,
+    failure
+  ) {
+
+    const callbackName =
+      'dasanCallback_' +
+      Date.now() +
+      '_' +
+      Math.floor(
+        Math.random() * 100000
+      );
+
+
+    const script =
+      document.createElement('script');
+
+
+    const timer =
+      setTimeout(function() {
+
+        cleanup();
+
+        failure(
+          new Error(
+            '서버 응답 시간이 초과되었습니다.'
+          )
+        );
+
+      }, 15000);
+
+
+    function cleanup() {
+
+      clearTimeout(timer);
+
+      if (script.parentNode) {
+        script.parentNode.removeChild(script);
+      }
+
+      try {
+        delete window[callbackName];
+      } catch (e) {
+        window[callbackName] = undefined;
+      }
+    }
+
+
+    window[callbackName] =
+      function(result) {
+
+        cleanup();
+
+        success(result);
+      };
+
+
+    const query =
+      new URLSearchParams();
+
+
+    Object.keys(parameters)
+      .forEach(function(key) {
+
+        query.set(
+          key,
+          parameters[key]
+        );
+      });
+
+
+    query.set(
+      'callback',
+      callbackName
+    );
+
+
+    script.src =
+      API_URL +
+      '?' +
+      query.toString();
+
+
+    script.onerror =
+      function() {
+
+        cleanup();
+
+        failure(
+          new Error(
+            '서버 연결에 실패했습니다.'
+          )
+        );
+      };
+
+
+    document.body.appendChild(
+      script
+    );
+  }
+
+
+  // 최초 학생등록
+  document
+    .getElementById('registerForm')
+    .addEventListener(
+      'submit',
+      function(e) {
+
+        e.preventDefault();
+
+
+        const button =
+          document.getElementById(
+            'registerBtn'
+          );
+
+
+        const grade =
+          document.getElementById(
+            'grade'
+          ).value;
+
+
+        const classNo =
+          document.getElementById(
+            'classNo'
+          ).value.trim();
+
+
+        const number =
+          document.getElementById(
+            'number'
+          ).value.trim();
+
+
+        const name =
+          document.getElementById(
+            'name'
+          ).value.trim();
+
+
+        if (
+          !grade ||
+          !classNo ||
+          !number ||
+          !name
+        ) {
+
+          alert(
+            '학년, 반, 번호, 이름을 모두 입력해 주세요.'
+          );
+
+          return;
+        }
+
+
+        button.disabled = true;
+        button.textContent =
+          '등록 중...';
+
+
+        const token =
+          getToken();
+
+
+        callServer(
+
+          {
+            api: 'register',
+            token: token,
+            grade: grade,
+            classNo: classNo,
+            number: number,
+            name: name
+          },
+
+
+          function(result) {
+
+            button.disabled = false;
+
+            button.textContent =
+              '등록하기';
+
+
+            if (!result.success) {
+
+              alert(
+                result.message ||
+                '등록에 실패했습니다.'
+              );
+
+              return;
+            }
+
+
+            // NFC 링크로 접속한 상태라면
+            // 등록 직후 바로 해당 활동 인증
+            if (EVENT) {
+
+              processEvent();
+
+            } else {
+
+              showResult(
+                '✅',
+                '등록 완료!',
+                '이 휴대폰 등록이 완료되었습니다. 이제 NFC를 이용할 수 있습니다.',
+                {
+                  grade: grade,
+                  classNo: classNo,
+                  number: number,
+                  name: name
+                }
+              );
+            }
+          },
+
+
+          function(error) {
+
+            button.disabled = false;
+
+            button.textContent =
+              '등록하기';
+
+            alert(error.message);
+          }
+        );
+      }
+    );
+
+
+  // NFC 이벤트 처리
+  function processEvent() {
+
+    const token =
+      localStorage.getItem(
+        TOKEN_KEY
+      );
+
+
+    if (!token) {
+
+      showRegister();
+
+      return;
+    }
+
+
+    if (!EVENT) {
+
+      showResult(
+        '📱',
+        '등록된 휴대폰',
+        'NFC 태그를 이용해 주세요.',
+        null
+      );
+
+      return;
+    }
+
+
+    showLoading();
+
+
+    callServer(
+
+      {
+        api: 'record',
+        token: token,
+        event: EVENT
+      },
+
+
+      function(result) {
+
+        // 서버에서 등록 학생을 찾을 수 없는 경우
+        if (
+          result.code ===
+          'NO_STUDENT'
+        ) {
+
+          clearToken();
+
+          showRegister();
+
+          return;
+        }
+
+
+        if (result.completed) {
+
+          showResult(
+            '🎉',
+            '성공!',
+            result.message,
+            result.student
+          );
+
+          return;
+        }
+
+
+        if (result.waiting) {
+
+          showResult(
+            '⏱️',
+            '아직 완료되지 않았어요',
+            result.message,
+            result.student
+          );
+
+          return;
+        }
+
+
+        if (result.started) {
+
+          showResult(
+            '✅',
+            '인증 완료',
+            result.message,
+            result.student
+          );
+
+          return;
+        }
+
+
+        if (
+          result.success &&
+          result.alreadyStarted
+        ) {
+
+          showResult(
+            '✅',
+            '이미 인증되었습니다',
+            result.message,
+            result.student
+          );
+
+          return;
+        }
+
+
+        if (result.success) {
+
+          showResult(
+            '✅',
+            '인증 완료',
+            result.message,
+            result.student
+          );
+
+          return;
+        }
+
+
+        showResult(
+          '⚠️',
+          '인증되지 않았어요',
+          result.message ||
+            '다시 확인해 주세요.',
+          result.student
+        );
+      },
+
+
+      function(error) {
+
+        showResult(
+          '⚠️',
+          '연결 오류',
+          error.message,
+          null
+        );
+      }
+    );
+  }
+
+
+  // 학생정보 다시 등록
+  document
+    .getElementById('resetBtn')
+    .addEventListener(
+      'click',
+      function() {
+
+        const result =
+          confirm(
+            '이 휴대폰의 학생 등록정보를 초기화할까요?'
+          );
+
+
+        if (!result) {
+          return;
+        }
+
+
+        clearToken();
+
+        showRegister();
+      }
+    );
+
+
+  // 처음 실행
+  (function start() {
+
+    const token =
+      localStorage.getItem(
+        TOKEN_KEY
+      );
+
+
+    if (!token) {
+
+      showRegister();
+
+      return;
+    }
+
+
+    processEvent();
+
+  })();
+
+</script>
+
+</body>
+</html>
