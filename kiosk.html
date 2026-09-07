@@ -1,0 +1,859 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport"
+        content="width=device-width, initial-scale=1.0">
+
+  <title>다산별빛 NFC 인증</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      padding: 20px;
+      font-family: Arial, "Noto Sans KR", sans-serif;
+      background: #f4f7fb;
+      color: #222;
+    }
+
+    .wrap {
+      max-width: 520px;
+      margin: 30px auto;
+    }
+
+    .card {
+      background: white;
+      border-radius: 22px;
+      padding: 32px 24px;
+      box-shadow: 0 6px 22px rgba(0,0,0,0.08);
+      text-align: center;
+    }
+
+    h1 {
+      font-size: 30px;
+      margin: 0 0 10px;
+    }
+
+    .subtitle {
+      font-size: 18px;
+      color: #666;
+      line-height: 1.5;
+      margin-bottom: 28px;
+    }
+
+    .icon {
+      font-size: 72px;
+      margin: 15px 0;
+    }
+
+    .big-message {
+      font-size: 27px;
+      font-weight: bold;
+      line-height: 1.4;
+      margin: 12px 0;
+    }
+
+    .message {
+      font-size: 18px;
+      line-height: 1.6;
+      color: #444;
+      margin: 15px 0;
+    }
+
+    .student {
+      margin-top: 20px;
+      padding: 15px;
+      background: #f3f4f6;
+      border-radius: 12px;
+      font-size: 18px;
+      font-weight: bold;
+    }
+
+    button {
+      width: 100%;
+      min-height: 58px;
+      margin-top: 22px;
+      border: none;
+      border-radius: 14px;
+      font-size: 19px;
+      font-weight: bold;
+      cursor: pointer;
+      background: #2563eb;
+      color: white;
+    }
+
+    button:disabled {
+      opacity: 0.6;
+    }
+
+    .small {
+      font-size: 14px;
+      color: #777;
+      margin-top: 20px;
+      line-height: 1.5;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    .waiting {
+      padding: 18px;
+      border-radius: 14px;
+      background: #f3f4f6;
+      margin-top: 18px;
+    }
+  </style>
+</head>
+
+
+<body>
+
+<div class="wrap">
+  <div class="card">
+
+    <h1 id="pageTitle">
+      🌟 다산별빛 헬스로드
+    </h1>
+
+    <div id="pageSubtitle"
+         class="subtitle">
+      개인 NFC 인증
+    </div>
+
+
+    <!-- 처음 시작 화면 -->
+    <div id="startView">
+
+      <div class="icon">📡</div>
+
+      <div class="big-message">
+        NFC 인증 준비
+      </div>
+
+      <div class="message">
+        아래 버튼을 한 번 누른 후<br>
+        학생 개인 NFC 스티커를<br>
+        휴대전화 뒷면에 태그하세요.
+      </div>
+
+      <button id="startButton"
+              type="button">
+        NFC 인증 시작
+      </button>
+
+      <div class="small">
+        비치기기 최초 실행 시 NFC 권한 허용이 필요합니다.
+      </div>
+
+    </div>
+
+
+    <!-- 대기 화면 -->
+    <div id="waitingView"
+         class="hidden">
+
+      <div class="icon">📶</div>
+
+      <div class="big-message">
+        인증 대기 중
+      </div>
+
+      <div class="waiting">
+        학생 개인 NFC 스티커를<br>
+        휴대전화 뒷면에 태그하세요.
+      </div>
+
+    </div>
+
+
+    <!-- 처리 중 -->
+    <div id="processingView"
+         class="hidden">
+
+      <div class="icon">⏳</div>
+
+      <div class="big-message">
+        인증 확인 중
+      </div>
+
+      <div class="message">
+        잠시만 기다려 주세요.
+      </div>
+
+    </div>
+
+
+    <!-- 결과 -->
+    <div id="resultView"
+         class="hidden">
+
+      <div id="resultIcon"
+           class="icon">
+        ✅
+      </div>
+
+      <div id="resultTitle"
+           class="big-message">
+        인증 완료
+      </div>
+
+      <div id="resultMessage"
+           class="message">
+      </div>
+
+      <div id="studentInfo"
+           class="student hidden">
+      </div>
+
+      <div class="small">
+        잠시 후 자동으로 다음 학생 인증 화면으로 돌아갑니다.
+      </div>
+
+    </div>
+
+  </div>
+</div>
+
+
+<script>
+
+  /* ==================================================
+     ★ 여기 API_URL만 현재 최종 Apps Script 주소로 변경
+     ================================================== */
+
+  const API_URL =
+    '여기에_APPS_SCRIPT_최종_웹앱_URL';
+
+'https://script.google.com/macros/s/AKfycbzfOVkhTXrT6RGw_T1dbil0u-gvoMF0WFFI5EBUjk8PBXpcG_JIGrWlwlArpGXNU22E/exec';
+  /* ================================================== */
+
+  const params =
+    new URLSearchParams(
+      window.location.search
+    );
+
+  const EVENT =
+    params.get('event') || '';
+
+  let reader = null;
+  let busy = false;
+  let lastToken = '';
+  let lastReadTime = 0;
+
+
+  const eventInfo = {
+
+    road_start: {
+      title: '🚶 헬스로드 출발',
+      subtitle: '출발 NFC 인증'
+    },
+
+    road_end: {
+      title: '🏁 헬스로드 도착',
+      subtitle: '완주 NFC 인증'
+    },
+
+    gym_auto: {
+      title: '🏋️ 헬스짐',
+      subtitle: '입장 · 운동완료 NFC 인증'
+    }
+  };
+
+
+  function hideAll() {
+
+    document
+      .getElementById('startView')
+      .classList.add('hidden');
+
+    document
+      .getElementById('waitingView')
+      .classList.add('hidden');
+
+    document
+      .getElementById('processingView')
+      .classList.add('hidden');
+
+    document
+      .getElementById('resultView')
+      .classList.add('hidden');
+  }
+
+
+  function showStart() {
+
+    hideAll();
+
+    document
+      .getElementById('startView')
+      .classList.remove('hidden');
+  }
+
+
+  function showWaiting() {
+
+    hideAll();
+
+    document
+      .getElementById('waitingView')
+      .classList.remove('hidden');
+  }
+
+
+  function showProcessing() {
+
+    hideAll();
+
+    document
+      .getElementById('processingView')
+      .classList.remove('hidden');
+  }
+
+
+  function showResult(
+    icon,
+    title,
+    message,
+    student
+  ) {
+
+    hideAll();
+
+    document
+      .getElementById('resultIcon')
+      .textContent = icon;
+
+    document
+      .getElementById('resultTitle')
+      .textContent = title;
+
+    document
+      .getElementById('resultMessage')
+      .textContent = message;
+
+
+    const studentInfo =
+      document.getElementById(
+        'studentInfo'
+      );
+
+
+    if (student) {
+
+      studentInfo.textContent =
+        student.grade + '학년 ' +
+        student.classNo + '반 ' +
+        student.number + '번 ' +
+        student.name;
+
+      studentInfo.classList.remove(
+        'hidden'
+      );
+
+    } else {
+
+      studentInfo.classList.add(
+        'hidden'
+      );
+    }
+
+
+    document
+      .getElementById('resultView')
+      .classList.remove('hidden');
+
+
+    // 4초 후 다음 학생 대기
+    setTimeout(function() {
+
+      busy = false;
+      showWaiting();
+
+    }, 4000);
+  }
+
+
+  function setupPage() {
+
+    const info =
+      eventInfo[EVENT];
+
+
+    if (!info) {
+
+      document
+        .getElementById('pageTitle')
+        .textContent =
+        '⚠️ 기기 설정 오류';
+
+      document
+        .getElementById('pageSubtitle')
+        .textContent =
+        '올바른 비치기기 주소가 아닙니다.';
+
+      document
+        .getElementById('startButton')
+        .disabled = true;
+
+      return;
+    }
+
+
+    document
+      .getElementById('pageTitle')
+      .textContent =
+      info.title;
+
+    document
+      .getElementById('pageSubtitle')
+      .textContent =
+      info.subtitle;
+  }
+
+
+  function extractToken(event) {
+
+    try {
+
+      const records =
+        event.message.records;
+
+
+      for (
+        const record of records
+      ) {
+
+        if (
+          record.recordType === 'text'
+        ) {
+
+          const decoder =
+            new TextDecoder(
+              record.encoding ||
+              'utf-8'
+            );
+
+          const text =
+            decoder.decode(
+              record.data
+            ).trim();
+
+
+          if (
+            text.startsWith(
+              'CARD-'
+            )
+          ) {
+
+            return text;
+          }
+        }
+
+
+        if (
+          record.recordType === 'url'
+        ) {
+
+          const decoder =
+            new TextDecoder();
+
+          const url =
+            decoder.decode(
+              record.data
+            ).trim();
+
+          const match =
+            url.match(
+              /(CARD-[A-Za-z0-9]+)/i
+            );
+
+          if (match) {
+
+            return match[1]
+              .toUpperCase();
+          }
+        }
+      }
+
+    } catch (error) {
+
+      console.error(error);
+    }
+
+
+    return '';
+  }
+
+
+  function callServer(
+    token
+  ) {
+
+    const callbackName =
+      'nfcCallback_' +
+      Date.now() +
+      '_' +
+      Math.floor(
+        Math.random() *
+        100000
+      );
+
+
+    const script =
+      document.createElement(
+        'script'
+      );
+
+
+    const timer =
+      setTimeout(function() {
+
+        cleanup();
+
+        showResult(
+          '⚠️',
+          '연결 오류',
+          '서버 응답이 없습니다. 다시 태그해 주세요.',
+          null
+        );
+
+      }, 15000);
+
+
+    function cleanup() {
+
+      clearTimeout(timer);
+
+      if (
+        script.parentNode
+      ) {
+
+        script.parentNode
+          .removeChild(script);
+      }
+
+
+      try {
+
+        delete window[
+          callbackName
+        ];
+
+      } catch (e) {
+
+        window[
+          callbackName
+        ] = undefined;
+      }
+    }
+
+
+    window[
+      callbackName
+    ] =
+      function(result) {
+
+        cleanup();
+
+        handleResult(result);
+      };
+
+
+    const query =
+      new URLSearchParams({
+        api: 'record',
+        token: token,
+        event: EVENT,
+        callback:
+          callbackName
+      });
+
+
+    script.src =
+      API_URL +
+      '?' +
+      query.toString();
+
+
+    script.onerror =
+      function() {
+
+        cleanup();
+
+        showResult(
+          '⚠️',
+          '연결 오류',
+          '서버 연결에 실패했습니다.',
+          null
+        );
+      };
+
+
+    document.body.appendChild(
+      script
+    );
+  }
+
+
+  function handleResult(
+    result
+  ) {
+
+    if (!result) {
+
+      showResult(
+        '⚠️',
+        '인증 실패',
+        '응답을 확인할 수 없습니다.',
+        null
+      );
+
+      return;
+    }
+
+
+    if (
+      result.completed
+    ) {
+
+      showResult(
+        '🎉',
+        '성공!',
+        result.message,
+        result.student
+      );
+
+      return;
+    }
+
+
+    if (
+      result.waiting
+    ) {
+
+      showResult(
+        '⏱️',
+        '아직 완료되지 않았어요',
+        result.message,
+        result.student
+      );
+
+      return;
+    }
+
+
+    if (
+      result.started
+    ) {
+
+      showResult(
+        '✅',
+        '인증 완료',
+        result.message,
+        result.student
+      );
+
+      return;
+    }
+
+
+    if (
+      result.alreadyStarted
+    ) {
+
+      showResult(
+        '✅',
+        '이미 인증되었습니다',
+        result.message,
+        result.student
+      );
+
+      return;
+    }
+
+
+    if (
+      result.success
+    ) {
+
+      showResult(
+        '✅',
+        '인증 완료',
+        result.message,
+        result.student
+      );
+
+      return;
+    }
+
+
+    showResult(
+      '⚠️',
+      '인증되지 않았어요',
+      result.message ||
+        '다시 태그해 주세요.',
+      result.student
+    );
+  }
+
+
+  async function startNfc() {
+
+    if (
+      !('NDEFReader' in window)
+    ) {
+
+      alert(
+        '이 기기 또는 브라우저에서는 NFC 읽기를 지원하지 않습니다. 안드로이드 Chrome을 사용해 주세요.'
+      );
+
+      return;
+    }
+
+
+    try {
+
+      const button =
+        document.getElementById(
+          'startButton'
+        );
+
+      button.disabled = true;
+      button.textContent =
+        'NFC 시작 중...';
+
+
+      reader =
+        new NDEFReader();
+
+
+      await reader.scan();
+
+
+      reader.addEventListener(
+        'readingerror',
+        function() {
+
+          if (busy) {
+            return;
+          }
+
+          showResult(
+            '⚠️',
+            '읽기 실패',
+            'NFC 스티커를 다시 태그해 주세요.',
+            null
+          );
+        }
+      );
+
+
+      reader.addEventListener(
+        'reading',
+        function(event) {
+
+          if (busy) {
+            return;
+          }
+
+
+          const token =
+            extractToken(event);
+
+
+          if (!token) {
+
+            busy = true;
+
+            showResult(
+              '⚠️',
+              '등록되지 않은 스티커',
+              '학생 개인 NFC 스티커인지 확인해 주세요.',
+              null
+            );
+
+            return;
+          }
+
+
+          // 같은 스티커 연속 인식 방지
+          const now =
+            Date.now();
+
+
+          if (
+            token === lastToken &&
+            now - lastReadTime <
+              5000
+          ) {
+
+            return;
+          }
+
+
+          lastToken =
+            token;
+
+          lastReadTime =
+            now;
+
+          busy = true;
+
+          showProcessing();
+
+          callServer(token);
+
+        }
+      );
+
+
+      showWaiting();
+
+
+    } catch (error) {
+
+      console.error(error);
+
+      document
+        .getElementById(
+          'startButton'
+        )
+        .disabled = false;
+
+      document
+        .getElementById(
+          'startButton'
+        )
+        .textContent =
+        'NFC 인증 시작';
+
+
+      alert(
+        'NFC 권한을 허용하고 다시 시도해 주세요.\n\n' +
+        '갤럭시의 NFC가 켜져 있는지도 확인해 주세요.'
+      );
+    }
+  }
+
+
+  document
+    .getElementById(
+      'startButton'
+    )
+    .addEventListener(
+      'click',
+      startNfc
+    );
+
+
+  setupPage();
+
+</script>
+
+</body>
+</html>
