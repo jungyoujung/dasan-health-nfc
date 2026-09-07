@@ -1,1 +1,387 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
+  <title>다산별빛 NFC 인증</title>
+
+  <style>
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      padding: 20px;
+      font-family: Arial, "Noto Sans KR", sans-serif;
+      background: #f4f7fb;
+      color: #222;
+    }
+
+    .card {
+      max-width: 480px;
+      margin: 35px auto;
+      background: white;
+      border-radius: 22px;
+      padding: 32px 24px;
+      text-align: center;
+      box-shadow: 0 6px 20px rgba(0,0,0,0.08);
+    }
+
+    h1 {
+      margin: 0 0 10px;
+      font-size: 27px;
+    }
+
+    .icon {
+      font-size: 65px;
+      margin: 25px 0 15px;
+    }
+
+    .title {
+      font-size: 27px;
+      font-weight: bold;
+      margin-bottom: 12px;
+    }
+
+    .message {
+      font-size: 18px;
+      line-height: 1.6;
+    }
+
+    .student {
+      margin-top: 20px;
+      padding: 15px;
+      background: #f3f4f6;
+      border-radius: 12px;
+      font-size: 18px;
+      font-weight: bold;
+    }
+
+    .device {
+      margin-top: 16px;
+      font-size: 14px;
+      color: #777;
+    }
+  </style>
+</head>
+
+<body>
+
+<div class="card">
+
+  <h1>🌟 다산별빛 헬스로드</h1>
+
+  <div id="icon" class="icon">⏳</div>
+
+  <div id="title" class="title">
+    인증 확인 중
+  </div>
+
+  <div id="message" class="message">
+    잠시만 기다려 주세요.
+  </div>
+
+  <div id="student"
+       class="student"
+       style="display:none;">
+  </div>
+
+  <div id="device" class="device"></div>
+
+</div>
+
+
+<script>
+
+  /*
+   * 기존 index.html의 API_URL과
+   * 반드시 똑같은 주소를 넣어주세요.
+   */
+  const API_URL =
+   'https://script.google.com/macros/s/AKfycbzfOVkhTXrT6RGw_T1dbil0u-gvoMF0WFFI5EBUjk8PBXpcG_JIGrWlwlArpGXNU22E/exec';
+
+
+  const ROLE_KEY =
+    'dasan_kiosk_role';
+
+
+  const params =
+    new URLSearchParams(
+      window.location.search
+    );
+
+
+  const token =
+    (params.get('token') || '')
+      .trim()
+      .toUpperCase();
+
+
+  const role =
+    localStorage.getItem(
+      ROLE_KEY
+    ) || '';
+
+
+  const roleNames = {
+    road_start: '헬스로드 출발',
+    road_end: '헬스로드 도착',
+    gym_auto: '헬스짐'
+  };
+
+
+  function show(
+    icon,
+    title,
+    message,
+    student
+  ) {
+
+    document.getElementById('icon')
+      .textContent = icon;
+
+    document.getElementById('title')
+      .textContent = title;
+
+    document.getElementById('message')
+      .textContent = message;
+
+
+    const box =
+      document.getElementById('student');
+
+
+    if (student) {
+
+      box.textContent =
+        student.grade + '학년 ' +
+        student.classNo + '반 ' +
+        student.number + '번 ' +
+        student.name;
+
+      box.style.display = 'block';
+
+    } else {
+
+      box.style.display = 'none';
+    }
+  }
+
+
+  function callServer() {
+
+    const callbackName =
+      'cardCallback_' +
+      Date.now();
+
+
+    const script =
+      document.createElement('script');
+
+
+    const timer =
+      setTimeout(function() {
+
+        cleanup();
+
+        show(
+          '⚠️',
+          '서버 연결 오류',
+          '잠시 후 다시 태그해 주세요.',
+          null
+        );
+
+      }, 15000);
+
+
+    function cleanup() {
+
+      clearTimeout(timer);
+
+      if (script.parentNode) {
+        script.parentNode.removeChild(script);
+      }
+
+      try {
+        delete window[callbackName];
+      } catch(e) {}
+    }
+
+
+    window[callbackName] =
+      function(result) {
+
+        cleanup();
+
+        handleResult(result);
+      };
+
+
+    const query =
+      new URLSearchParams({
+        api: 'record',
+        token: token,
+        event: role,
+        callback: callbackName
+      });
+
+
+    script.src =
+      API_URL +
+      '?' +
+      query.toString();
+
+
+    script.onerror =
+      function() {
+
+        cleanup();
+
+        show(
+          '⚠️',
+          '서버 연결 오류',
+          '서버 연결에 실패했습니다.',
+          null
+        );
+      };
+
+
+    document.body.appendChild(script);
+  }
+
+
+  function handleResult(result) {
+
+    if (!result) {
+
+      show(
+        '⚠️',
+        '인증 오류',
+        '응답을 확인할 수 없습니다.',
+        null
+      );
+
+      return;
+    }
+
+
+    if (result.completed) {
+
+      show(
+        '🎉',
+        '성공!',
+        result.message,
+        result.student
+      );
+
+      return;
+    }
+
+
+    if (result.waiting) {
+
+      show(
+        '⏱️',
+        '아직 완료되지 않았어요',
+        result.message,
+        result.student
+      );
+
+      return;
+    }
+
+
+    if (result.started) {
+
+      show(
+        '✅',
+        '인증 완료',
+        result.message,
+        result.student
+      );
+
+      return;
+    }
+
+
+    if (result.alreadyStarted) {
+
+      show(
+        '✅',
+        '이미 인증되었습니다',
+        result.message,
+        result.student
+      );
+
+      return;
+    }
+
+
+    if (result.success) {
+
+      show(
+        '✅',
+        '인증 완료',
+        result.message,
+        result.student
+      );
+
+      return;
+    }
+
+
+    show(
+      '⚠️',
+      '인증되지 않았어요',
+      result.message || '다시 확인해 주세요.',
+      result.student
+    );
+  }
+
+
+  function start() {
+
+    document.getElementById('device')
+      .textContent =
+      role
+        ? '현재 기기: ' + (roleNames[role] || role)
+        : '';
+
+
+    if (!token ||
+        !token.startsWith('CARD-')) {
+
+      show(
+        '⚠️',
+        '잘못된 NFC입니다',
+        '학생 개인 NFC 스티커를 확인해 주세요.',
+        null
+      );
+
+      return;
+    }
+
+
+    if (!role) {
+
+      show(
+        '⚙️',
+        '비치기기 설정 필요',
+        '이 휴대전화의 역할이 아직 설정되지 않았습니다.',
+        null
+      );
+
+      return;
+    }
+
+
+    callServer();
+  }
+
+
+  start();
+
+</script>
+
+</body>
+</html>
