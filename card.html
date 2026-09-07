@@ -69,7 +69,7 @@
 
 <div class="card">
 
-  <h1>🌟 다산별빛 헬스로드</h1>
+  <h1 id="mainTitle">🌟 다산별빛 건강활동</h1>
 
   <div id="icon" class="icon">⏳</div>
 
@@ -123,11 +123,11 @@
     ) || '';
 
 
-  const roleNames = {
-    road_start: '헬스로드 출발',
-    road_end: '헬스로드 도착',
-    gym_auto: '헬스짐'
-  };
+const mainTitles = {
+  road_start: '🚶 다산별빛 헬스로드',
+  road_end: '🏁 다산별빛 헬스로드',
+  gym_auto: '🏋️ 다산별빛 헬스짐'
+};
 
 
   function show(
@@ -378,7 +378,8 @@
     callServer();
   }
 
-
+document.getElementById('mainTitle').textContent =
+  mainTitles[role] || '🌟 다산별빛 건강활동';
   start();
 
 </script>
