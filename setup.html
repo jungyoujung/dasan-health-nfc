@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>다산별빛 비치기기 설정</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      padding: 20px;
+      font-family: Arial, "Noto Sans KR", sans-serif;
+      background: #f4f7fb;
+      color: #222;
+    }
+
+    .card {
+      max-width: 480px;
+      margin: 35px auto;
+      background: white;
+      border-radius: 22px;
+      padding: 30px 22px;
+      text-align: center;
+      box-shadow: 0 6px 20px rgba(0,0,0,0.08);
+    }
+
+    h1 {
+      font-size: 27px;
+      margin: 0 0 10px;
+    }
+
+    .subtitle {
+      color: #666;
+      line-height: 1.6;
+      margin-bottom: 25px;
+    }
+
+    .current {
+      padding: 15px;
+      border-radius: 12px;
+      background: #f3f4f6;
+      margin-bottom: 24px;
+      font-size: 17px;
+      line-height: 1.6;
+    }
+
+    button {
+      width: 100%;
+      min-height: 62px;
+      border: none;
+      border-radius: 14px;
+      margin: 8px 0;
+      font-size: 19px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .road-start {
+      background: #2563eb;
+      color: white;
+    }
+
+    .road-end {
+      background: #16a34a;
+      color: white;
+    }
+
+    .gym {
+      background: #7c3aed;
+      color: white;
+    }
+
+    .reset {
+      margin-top: 22px;
+      background: #eeeeee;
+      color: #444;
+      min-height: 48px;
+      font-size: 15px;
+    }
+
+    .success {
+      margin-top: 22px;
+      padding: 18px;
+      border-radius: 12px;
+      background: #ecfdf5;
+      font-size: 18px;
+      font-weight: bold;
+      line-height: 1.6;
+      display: none;
+    }
+  </style>
+</head>
+
+<body>
+
+<div class="card">
+
+  <h1>⚙️ 비치기기 설정</h1>
+
+  <div class="subtitle">
+    이 휴대전화가 사용할 역할을<br>
+    한 번만 선택해 주세요.
+  </div>
+
+  <div id="currentRole" class="current">
+    현재 설정: 없음
+  </div>
+
+  <button
+    class="road-start"
+    onclick="saveRole('road_start')">
+    🚶 헬스로드 출발 기기
+  </button>
+
+  <button
+    class="road-end"
+    onclick="saveRole('road_end')">
+    🏁 헬스로드 도착 기기
+  </button>
+
+  <button
+    class="gym"
+    onclick="saveRole('gym_auto')">
+    🏋️ 헬스짐 기기
+  </button>
+
+  <div id="successBox" class="success">
+  </div>
+
+  <button
+    class="reset"
+    onclick="resetRole()">
+    기기 설정 초기화
+  </button>
+
+</div>
+
+
+<script>
+
+  const ROLE_KEY = 'dasan_kiosk_role';
+
+  const roleNames = {
+    road_start: '🚶 헬스로드 출발',
+    road_end: '🏁 헬스로드 도착',
+    gym_auto: '🏋️ 헬스짐'
+  };
+
+
+  function updateScreen() {
+
+    const role =
+      localStorage.getItem(ROLE_KEY);
+
+    const box =
+      document.getElementById('currentRole');
+
+    if (role && roleNames[role]) {
+
+      box.innerHTML =
+        '현재 설정:<br><b>' +
+        roleNames[role] +
+        '</b>';
+
+    } else {
+
+      box.innerHTML =
+        '현재 설정: <b>없음</b>';
+    }
+  }
+
+
+  function saveRole(role) {
+
+    localStorage.setItem(
+      ROLE_KEY,
+      role
+    );
+
+    updateScreen();
+
+    const success =
+      document.getElementById(
+        'successBox'
+      );
+
+    success.innerHTML =
+      '✅ 설정 완료<br>' +
+      roleNames[role] +
+      ' 기기로 사용합니다.';
+
+    success.style.display =
+      'block';
+  }
+
+
+  function resetRole() {
+
+    const ok =
+      confirm(
+        '이 휴대전화의 역할 설정을 초기화할까요?'
+      );
+
+    if (!ok) {
+      return;
+    }
+
+    localStorage.removeItem(
+      ROLE_KEY
+    );
+
+    document
+      .getElementById('successBox')
+      .style.display = 'none';
+
+    updateScreen();
+  }
+
+
+  updateScreen();
+
+</script>
+
+</body>
+</html>
