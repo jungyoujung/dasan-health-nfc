@@ -2,13 +2,14 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport"
-        content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
   <title>다산별빛 헬스로드</title>
 
   <style>
-    * { box-sizing: border-box; }
+    * {
+      box-sizing: border-box;
+    }
 
     body {
       margin: 0;
@@ -18,25 +19,25 @@
       color: #222;
     }
 
-    .box {
+    .card {
       max-width: 480px;
       margin: 20px auto;
       background: white;
-      padding: 28px 22px;
       border-radius: 22px;
+      padding: 28px 22px;
       text-align: center;
-      box-shadow: 0 6px 20px rgba(0,0,0,.08);
+      box-shadow: 0 6px 20px rgba(0,0,0,0.08);
     }
 
     h1 {
-      margin-top: 0;
+      margin: 0 0 8px;
       font-size: 28px;
     }
 
-    .help {
+    .subtitle {
       color: #666;
-      line-height: 1.5;
-      margin-bottom: 22px;
+      line-height: 1.6;
+      margin-bottom: 25px;
     }
 
     .row {
@@ -47,7 +48,7 @@
 
     input, select {
       width: 100%;
-      height: 54px;
+      height: 55px;
       border: 1px solid #ccc;
       border-radius: 12px;
       padding: 0 12px;
@@ -56,15 +57,15 @@
     }
 
     .name {
-      margin-bottom: 18px;
+      margin-bottom: 12px;
     }
 
     button {
       width: 100%;
-      min-height: 68px;
-      border: 0;
+      min-height: 70px;
+      border: none;
       border-radius: 15px;
-      margin-top: 10px;
+      margin-top: 11px;
       font-size: 21px;
       font-weight: bold;
       cursor: pointer;
@@ -81,30 +82,30 @@
     }
 
     button:disabled {
-      opacity: .5;
+      opacity: 0.5;
     }
 
     .result {
       margin-top: 20px;
-      padding: 18px 12px;
+      min-height: 75px;
+      padding: 17px 12px;
       border-radius: 14px;
       background: #f3f4f6;
-      font-size: 19px;
+      font-size: 18px;
       line-height: 1.6;
-      min-height: 70px;
     }
   </style>
 </head>
 
 <body>
 
-<div class="box">
+<div class="card">
 
   <h1>🚶 다산별빛 헬스로드</h1>
 
-  <div class="help">
-    학년·반·번호·이름을 입력한 뒤<br>
-    시작 또는 종료를 눌러주세요.
+  <div class="subtitle">
+    학생 정보를 입력한 뒤<br>
+    시작 또는 종료 인증을 눌러주세요.
   </div>
 
   <div class="row">
@@ -142,15 +143,15 @@
   <button
     id="startBtn"
     class="start"
-    onclick="send('road_start')">
-    🚶 시작 인증
+    onclick="sendRecord('road_start')">
+    🚶 헬스로드 시작 인증
   </button>
 
   <button
     id="endBtn"
     class="end"
-    onclick="send('road_end')">
-    🏁 종료 인증
+    onclick="sendRecord('road_end')">
+    🏁 헬스로드 종료 인증
   </button>
 
   <div id="result" class="result">
@@ -159,31 +160,28 @@
 
 </div>
 
+
 <script>
 
 const API_URL =
   'https://script.google.com/macros/s/AKfycbxMOrWIMogseb47OrvQRHxBksL1F3YVEWR3huHESytELo2zJCSx4Dc651JK1RY0SDov/exec';
 
 
-function setBusy(busy) {
-
-  document.getElementById('startBtn').disabled = busy;
-  document.getElementById('endBtn').disabled = busy;
+function setBusy(value) {
+  document.getElementById('startBtn').disabled = value;
+  document.getElementById('endBtn').disabled = value;
 }
 
 
-function clearStudent() {
-
+function clearForm() {
   document.getElementById('grade').value = '';
   document.getElementById('classNo').value = '';
   document.getElementById('number').value = '';
   document.getElementById('name').value = '';
-
-  document.getElementById('name').focus();
 }
 
 
-function send(event, attempt = 0) {
+function sendRecord(event) {
 
   const grade =
     document.getElementById('grade').value;
@@ -213,7 +211,7 @@ function send(event, attempt = 0) {
     '⏳ 인증 확인 중...';
 
 
-  const callback =
+  const callbackName =
     'roadCallback_' + Date.now();
 
 
@@ -233,22 +231,12 @@ function send(event, attempt = 0) {
 
       cleanup();
 
-      if (attempt < 1) {
+      setBusy(false);
 
-        document.getElementById('result').innerHTML =
-          '⏳ 서버 재연결 중...';
+      document.getElementById('result').innerHTML =
+        '⚠️ 서버 연결이 어렵습니다.<br>다시 눌러주세요.';
 
-        send(event, attempt + 1);
-
-      } else {
-
-        setBusy(false);
-
-        document.getElementById('result').innerHTML =
-          '⚠️ 서버 연결이 어렵습니다.<br>잠시 후 다시 눌러주세요.';
-      }
-
-    }, 10000);
+    }, 12000);
 
 
   function cleanup() {
@@ -260,12 +248,12 @@ function send(event, attempt = 0) {
     }
 
     try {
-      delete window[callback];
+      delete window[callbackName];
     } catch(e) {}
   }
 
 
-  window[callback] = function(result) {
+  window[callbackName] = function(result) {
 
     if (finished) return;
 
@@ -278,24 +266,28 @@ function send(event, attempt = 0) {
 
     if (result && result.success) {
 
-      const student =
-        result.student
-          ? '<br><b>' +
-            result.student.grade + '학년 ' +
-            result.student.classNo + '반 ' +
-            result.student.number + '번 ' +
-            result.student.name +
-            '</b>'
-          : '';
+      let studentText = '';
+
+      if (result.student) {
+        studentText =
+          '<br><b>' +
+          result.student.grade + '학년 ' +
+          result.student.classNo + '반 ' +
+          result.student.number + '번 ' +
+          result.student.name +
+          '</b>';
+      }
+
 
       document.getElementById('result').innerHTML =
         '✅ ' +
         (result.message || '인증 완료') +
-        student;
+        studentText;
+
 
       setTimeout(function() {
 
-        clearStudent();
+        clearForm();
 
         document.getElementById('result').innerHTML =
           '다음 학생 정보를 입력해 주세요.';
@@ -322,12 +314,14 @@ function send(event, attempt = 0) {
       number: number,
       name: name,
       event: event,
-      callback: callback
+      callback: callbackName
     });
 
 
   script.src =
-    API_URL + '?' + query.toString();
+    API_URL +
+    '?' +
+    query.toString();
 
 
   script.onerror = function() {
@@ -338,17 +332,10 @@ function send(event, attempt = 0) {
 
     cleanup();
 
-    if (attempt < 1) {
+    setBusy(false);
 
-      send(event, attempt + 1);
-
-    } else {
-
-      setBusy(false);
-
-      document.getElementById('result').innerHTML =
-        '⚠️ 서버 연결이 어렵습니다.<br>다시 눌러주세요.';
-    }
+    document.getElementById('result').innerHTML =
+      '⚠️ 서버 연결에 실패했습니다.<br>다시 눌러주세요.';
   };
 
 
